@@ -265,20 +265,20 @@ void imgToBin(){
 
 void binToImg()
 {
-	int height = 1080;//768;//1080;row
-	int width = 1920;//1024;//1920;col
+	int height = 768;//1080;row
+	int width = 1024;//1920;col
 	int img_num = 1;//字典中图片的尺寸与图片总数量需提前知道
 
 	ifstream infile;
 	vector<Mat> dict;
-	infile.open("D:/Image/0420_2.bin", ios::binary);
-	Mat img = Mat::zeros(height, width, CV_16UC1);//1920*1080:CV_16UC1;1024*768:CV_8UC3
+	infile.open("D:/Image/dat.bin", ios::binary);
+	Mat img = Mat::zeros(height, width, CV_8UC3);//1920*1080:CV_16UC1;1024*768:CV_8UC3
 
 	cout << "img.size:" << img.size() << " img.rows=" << img.rows << " img.elemSize()=" << img.elemSize()<<" img.elemSize1()=" << img.elemSize1() << endl;
 	for (int num = 0; num < img_num; num++)
 	{
 		for (int r = num; r < num + img.rows; r++)
-			infile.read(reinterpret_cast<char*>(img.ptr(r - num)), img.cols*img.elemSize1());//1920*2byte
+			infile.read(reinterpret_cast<char*>(img.ptr(r - num)), img.cols*img.elemSize());//1920*2byte
 		dict.push_back(img);
 	}
 	namedWindow("img", WINDOW_AUTOSIZE);

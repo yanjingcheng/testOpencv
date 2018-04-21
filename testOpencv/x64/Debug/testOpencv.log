@@ -1,4 +1,4 @@
-﻿Build started 2018/4/20 22:04:16.
+﻿Build started 2018/4/21 9:18:59.
      1>Project "D:\testOpencvLib\testOpencv\testOpencv\testOpencv.vcxproj" on node 2 (Rebuild target(s)).
      1>ClCompile:
          D:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\x86_amd64\CL.exe /c /I"D:\sw\jpeg-9a" /ID:\sw\cbuidOpencv320\install\include /ID:\sw\cbuidOpencv320\install\include\opencv /ID:\sw\cbuidOpencv320\install\include\opencv2 /Zi /nologo /W3 /WX- /sdl /Od /D WIN32 /D _DEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"x64\Debug\\" /Fd"x64\Debug\vc120.pdb" /Gd /TP /errorReport:prompt Source.cpp
@@ -23,4 +23,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:03.07
+Time Elapsed 00:00:03.01
