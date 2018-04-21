@@ -114,7 +114,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>D:\sw\jpeg-9a\x64\Release;D:\sw\cbuidOpencv320\install\x64\vc12\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>jpeg.lib;opencv_core320d.lib;opencv_highgui320d.lib;opencv_video320d.lib;opencv_ml320d.lib;opencv_imgproc320d.lib;opencv_photo320d.lib;opencv_imgcodecs320d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>jpeg.lib;opencv_core320d.lib;opencv_highgui320d.lib;opencv_video320d.lib;opencv_ml320d.lib;opencv_imgproc320d.lib;opencv_photo320d.lib;opencv_imgcodecs320d.lib;opencv_videoio320d.lib;opencv_videostab320d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>

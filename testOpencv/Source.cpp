@@ -1,7 +1,8 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>    
 #include <opencv2/imgproc/imgproc.hpp>    
-#include <opencv2/highgui/highgui.hpp> 
+#include <opencv2/highgui/highgui.hpp>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +11,10 @@
 #include <iostream>
 #include <fstream>
 #include "Header.h"
+#include <sys/types.h> 
+#include <sys/stat.h> 
+#include <direct.h>
+//#include <boost/filesystem.hpp>
 extern "C" {
 #include <jpeglib.h>
 #include <jconfig.h>
@@ -169,7 +174,7 @@ unsigned char imageFile[(1024 * 768 * 3) >> 1] = { 0 };
 
 #define V_START	 ((WIDTH*HIGH*5)>>2)
 #define V_END 	 (CAPACITY-1)
-
+//#define __DEBUG 
 bool YV12ToBGR24_OpenCV(unsigned char* pYUV, unsigned char* pBGR24, int width, int hight)
 {
 	//Mat dst, src;
@@ -239,7 +244,7 @@ int yuv420p_to_jpeg(const char * filename, unsigned char* pdata, int image_width
 	return 0;
 }
 void imgToBin(){
-	ofstream outfile;
+	ofstream outfile;//内存到磁盘
 	outfile.open("D:/Image/dat.bin", ios::binary);
 	
 	vector<String> files;
@@ -255,7 +260,7 @@ void imgToBin(){
 		cout << "size" << Iface.size << "row" << Iface.rows << "col" << Iface.cols <<endl;
 		for (int r = 0; r < Iface.rows; r++)//uchar* Mat::ptr(int y)
 		{
-			//write(const unsigned char *buf,int num);  
+			//write(const unsigned char *buf,int num);  从buf中写num大小的内容到磁盘中
 
 			outfile.write(reinterpret_cast<char*>(Iface.ptr(r)), Iface.cols*Iface.elemSize());
 		}
@@ -269,21 +274,100 @@ void binToImg()
 	int width = 1024;//1920;col
 	int img_num = 1;//字典中图片的尺寸与图片总数量需提前知道
 
-	ifstream infile;
-	vector<Mat> dict;
+	ifstream infile;//ifstream 磁盘到内存
 	infile.open("D:/Image/dat.bin", ios::binary);
+
+	vector<Mat> dict;
 	Mat img = Mat::zeros(height, width, CV_8UC3);//1920*1080:CV_16UC1;1024*768:CV_8UC3
 
 	cout << "img.size:" << img.size() << " img.rows=" << img.rows << " img.elemSize()=" << img.elemSize()<<" img.elemSize1()=" << img.elemSize1() << endl;
 	for (int num = 0; num < img_num; num++)
 	{
-		for (int r = num; r < num + img.rows; r++)
+		for (int r = num; r < num + img.rows; r++)//从bin文件中读size到rambuf中
 			infile.read(reinterpret_cast<char*>(img.ptr(r - num)), img.cols*img.elemSize());//1920*2byte
 		dict.push_back(img);
 	}
 	namedWindow("img", WINDOW_AUTOSIZE);
 	imshow("img", dict[0]);
 	waitKey(0);
+}
+#if 0
+int get_filenames(const std::string& dir, std::vector<std::string>& filenames)
+{
+	fs::path path(dir);
+	if (!fs::exists(path))
+	{
+		return -1;
+	}
+
+	fs::directory_iterator end_iter;
+	for (fs::directory_iterator iter(path); iter != end_iter; ++iter)
+	{
+		if (fs::is_regular_file(iter->status()))
+		{
+			filenames.push_back(iter->path().string());
+		}
+
+		if (fs::is_directory(iter->status()))
+		{
+			get_filenames(iter->path().string(), filenames);
+		}
+	}
+
+	return filenames.size();
+}
+#endif
+int procVedio(const std::string & sVedioPath)
+{
+	//VideoCapture::
+	vector<String> files;
+	String dir_path = "D:\\Image\\*.mp4";   //读取该目录下文件
+	glob(dir_path, files, false);
+
+
+	string sImgPath = sVedioPath + "\\imgdir\\" ;
+	
+#ifdef __DEBUG
+	cout << "保存路劲：" << sImgPath.c_str() << endl;
+#endif
+	Mat frame;
+	bool flags = true;
+	long currentFrame = 0;
+	for (int i = 0; i < files.size(); i++)
+	{
+		cv::VideoCapture cap(files[i]);
+		int allFrameNum = cap.get(CV_CAP_PROP_FRAME_COUNT);
+#ifdef __DEBUG
+		cout << " Vedio# "<< i << ":" <<files[i].c_str()<< "\tTotal Frames: " << allFrameNum << endl;
+#endif
+		currentFrame = 0;
+		flags = true;
+#if 1
+		while (flags)
+		{
+			// 读取视频每一帧
+			cap.read(frame);
+			stringstream str;
+			str << "Vedio#" << i << "__Frame#" << currentFrame << ".jpg";
+#ifdef __DEBUG
+			cout << "正在处理第#" << currentFrame << "帧" << endl;
+			cout << "结果路劲:" << sImgPath.c_str() + str.str() << endl;
+			//if (currentFrame >= 10)
+			//	break;
+			if (0 == (currentFrame % 300))
+#endif
+			{
+				imwrite(sImgPath.c_str() + str.str(), frame);
+			}
+
+			if (currentFrame >= allFrameNum){
+				flags = false;
+			}
+			currentFrame++;
+		}
+	}
+#endif
+	return 0;
 }
 int main(int argc, char** argv)
 {
@@ -303,7 +387,12 @@ int main(int argc, char** argv)
 	//cout << "M1=" << endl << " " << m1 << endl;
 	Mat m2(3, 2, CV_8UC2, Scalar(6, 8, 10));
 	//cout << "M2=" << endl << " " << m2 << endl;
-	binToImg();
+	//binToImg();
+	string localpath = "D:\\Image";
+	double dMultiTestTime = (double)cvGetTickCount();
+	procVedio(localpath.c_str());
+	double dTime = ((double)cvGetTickCount() - dMultiTestTime) / cvGetTickFrequency() / 1000000;
+	cout << "SingleThread Done! Time: " << dTime << "s." << endl;
 #if 0
 	void *getMalloc = NULL;
 	arr = (int *)malloc(sizeof(int)* N);
