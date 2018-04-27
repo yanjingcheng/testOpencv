@@ -35,6 +35,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
     <PlatformToolset>v120</PlatformToolset>
+    <UseOfMfc>Dynamic</UseOfMfc>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -72,7 +73,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>D:\sw\jpeg-9a\x64\Release;D:\sw\cbuidOpencv320\install\x64\vc12\lib;$(LibraryPath)</LibraryPath>
+    <LibraryPath>D:\local\boost_1_63_0\lib64-msvc-12.0;D:\sw\jpeg-9a\x64\Release;D:\sw\cbuidOpencv320\install\x64\vc12\lib;$(LibraryPath)</LibraryPath>
+    <ExecutablePath>D:\local\boost_1_63_0\tools;$(ExecutablePath)</ExecutablePath>
+    <IncludePath>D:\local\boost_1_63_0;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -108,12 +111,12 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>D:\sw\jpeg-9a;D:\sw\cbuidOpencv320\install\include;D:\sw\cbuidOpencv320\install\include\opencv;D:\sw\cbuidOpencv320\install\include\opencv2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>($ProjectDir);D:\local\boost_1_63_0;D:\sw\jpeg-9a;D:\sw\cbuidOpencv320\install\include;D:\sw\cbuidOpencv320\install\include\opencv;D:\sw\cbuidOpencv320\install\include\opencv2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\sw\jpeg-9a\x64\Release;D:\sw\cbuidOpencv320\install\x64\vc12\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\local\boost_1_63_0\libs;D:\sw\jpeg-9a\x64\Release;D:\sw\cbuidOpencv320\install\x64\vc12\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>jpeg.lib;opencv_core320d.lib;opencv_highgui320d.lib;opencv_video320d.lib;opencv_ml320d.lib;opencv_imgproc320d.lib;opencv_photo320d.lib;opencv_imgcodecs320d.lib;opencv_videoio320d.lib;opencv_videostab320d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <ProjectReference>
@@ -155,7 +158,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>jpeg.lib;opencv_core320d.lib;opencv_highgui320d.lib;opencv_video320d.lib;opencv_ml320d.lib;opencv_imgproc320d.lib;opencv_photo320d.lib;opencv_imgcodecs320d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>jpeg.lib;opencv_core320d.lib;opencv_highgui320d.lib;opencv_video320d.lib;opencv_ml320d.lib;opencv_videoio320d.lib;opencv_imgproc320d.lib;opencv_photo320d.lib;opencv_imgcodecs320d.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>D:\sw\jpeg-9a\x64\Release;D:\sw\cbuidOpencv320\install\x64\vc12\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <ProjectReference>

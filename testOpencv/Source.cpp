@@ -13,7 +13,10 @@
 #include "Header.h"
 #include <sys/types.h> 
 #include <sys/stat.h> 
-#include <direct.h>
+#include <direct.h>//for mk_dir  
+#include <io.h>//for _acess() 
+
+//#include <boost/lexical_cast.hpp>
 //#include <boost/filesystem.hpp>
 extern "C" {
 #include <jpeglib.h>
@@ -23,6 +26,7 @@ extern "C" {
 }
 using namespace cv;
 using namespace std;
+//using namespace boost;
 //#pragma comment(lib,"jpeg.lib") 
 #define HLEN     ((sizeof(struct __mp__)))
 mp_t *heap_start;
@@ -147,14 +151,7 @@ void *rk_malloc(void *heap_addr, unsigned int size, unsigned int pc)
 
 	return &q[1];
 }
-void getadd_plus(int **point)
-{
-	**point = 10;
-}
-void getadd(int *p_point)
-{
-	getadd_plus(&p_point);
-}
+
 
 typedef union {
 	long long int a;
@@ -174,7 +171,36 @@ unsigned char imageFile[(1024 * 768 * 3) >> 1] = { 0 };
 
 #define V_START	 ((WIDTH*HIGH*5)>>2)
 #define V_END 	 (CAPACITY-1)
-//#define __DEBUG 
+#define __DEBUG 
+//创建多级目录
+int recursive_mkdir(char *dir)
+{
+	//分解路径名E:\\AA\\BB\\CC\\  
+	//  
+	std::string str = dir;
+	size_t index = 0;
+	int i = 0;
+	while (1)
+	{
+		std::string::size_type pos = str.find("\\", index);
+		std::string str1;
+		str1 = str.substr(0, pos);
+		if (pos != -1 && i > 0)
+		{
+			if (_access(str1.c_str(), 0) == -1)
+			{
+				_mkdir(str1.c_str());
+			}
+		}
+		if (pos == -1)
+		{
+			break;
+		}
+		i++;
+		index = pos + 1;
+	}
+	return 0;
+}
 bool YV12ToBGR24_OpenCV(unsigned char* pYUV, unsigned char* pBGR24, int width, int hight)
 {
 	//Mat dst, src;
@@ -291,7 +317,7 @@ void binToImg()
 	imshow("img", dict[0]);
 	waitKey(0);
 }
-#if 0
+#if 0 //boost库使用范例，编译无法通过
 int get_filenames(const std::string& dir, std::vector<std::string>& filenames)
 {
 	fs::path path(dir);
@@ -321,22 +347,27 @@ int procVedio(const std::string & sVedioPath)
 {
 	//VideoCapture::
 	vector<String> files;
-	String dir_path = "D:\\Image\\*.mp4";   //读取该目录下文件
+	String dir_path = sVedioPath + "\\*.mp4";
+	//String dir_path = "D:\\Image\\*.mp4";   //读取该目录下文件
 	glob(dir_path, files, false);
 
 
 	string sImgPath = sVedioPath + "\\imgdir\\" ;
 	
 #ifdef __DEBUG
-	cout << "保存路劲：" << sImgPath.c_str() << endl;
+	cout << "\t\t保存路径：" << sImgPath.c_str() << endl;
 #endif
 	Mat frame;
 	bool flags = true;
 	long currentFrame = 0;
 	for (int i = 0; i < files.size(); i++)
 	{
-		cv::VideoCapture cap(files[i]);
-		int allFrameNum = cap.get(CV_CAP_PROP_FRAME_COUNT);
+		VideoCapture cap(files[i]);
+		if (!cap.isOpened())
+		{
+			perror("error");
+		}
+		double allFrameNum = cap.get(CV_CAP_PROP_FRAME_COUNT);
 #ifdef __DEBUG
 		cout << " Vedio# "<< i << ":" <<files[i].c_str()<< "\tTotal Frames: " << allFrameNum << endl;
 #endif
@@ -351,10 +382,10 @@ int procVedio(const std::string & sVedioPath)
 			str << "Vedio#" << i << "__Frame#" << currentFrame << ".jpg";
 #ifdef __DEBUG
 			cout << "正在处理第#" << currentFrame << "帧" << endl;
-			cout << "结果路劲:" << sImgPath.c_str() + str.str() << endl;
+			cout << "结果路径:" << sImgPath.c_str() + str.str() << endl;
 			//if (currentFrame >= 10)
 			//	break;
-			if (0 == (currentFrame % 300))
+			if (0 == (currentFrame % 100))
 #endif
 			{
 				imwrite(sImgPath.c_str() + str.str(), frame);
@@ -369,8 +400,96 @@ int procVedio(const std::string & sVedioPath)
 #endif
 	return 0;
 }
+void cvtYuv420Format(u8 *src, s32 height, s32 width)	
+{
+	u8 *buf = new u8[height * width / 2];
+	//UU...U VV...V备份
+	memcpy(buf, src + height * width, height * width / 2);
+	//将UU...U VV...V从备份处拷贝到相应的位置
+	for (s32 i = 0; i < height*width / 4; i++)
+	{
+		*(src + height*width + 2 * i) = *(buf + i);
+		*(src + height*width + 2 * i + 1) = *(buf + height*width / 4 + i);
+	}
+	delete[]buf;
+}
+#if 0 //优化
+void cvtYuv420Format_opt(u8 *src, s32 height, s32 width)
+{
+	int64_t YYY = height*width;
+	for (u32 h = 0; h < (height >> 2); ++h)
+		for (u32 w = 0; w < (width - 1); ++w)
+			*(src + YYY + w + 1) = (src + YYY + w + 1)
+	
+}
+#endif
+void imgToVedio()
+{
+	// 构造一个VideoWriter
+	VideoWriter videoWrite;
+	int codec = CV_FOURCC('M', 'J', 'P', 'G');  // select desired codec (must be available at runtime)
+	double fps = 20.0;                          // framerate of the created video stream
+	string filename = "./test.avi";             // name of the output video file
+	//string filename = "E:\\Video2YUV\\ZH_0426pictures\\test.avi";
+	videoWrite.open(filename, codec, fps, Size(640,320));
+	if (!videoWrite.isOpened())
+		perror("Create vedio failed !");
+	//VideoWriter videoWrite("E:\\Video2YUV\\ZH_0426pictures\\test.avi", CV_FOURCC('M', 'J', 'P', 'G'), 20.0, Size(640, 320));
+	// 从一个文件夹下读取多张jpg图片
+	//String pattern = "E:\\Video2YUV\\ZH_0426pictures\\*.jpg";
+	String pattern = "./*.jpg";
+	vector<String> fn;
+
+	glob(pattern, fn, false);
+
+	size_t count = fn.size();
+	for (size_t i = 0; i < count; i++)
+	{
+		Mat image = imread(fn[i]);
+		// 这个大小与VideoWriter构造函数中的大小一致。
+		resize(image, image, Size(640, 320));
+		// 流操作符，把图片传入视频
+		videoWrite << image;
+		cout << count << "read img" << fn[i].c_str() << " to vedio" << endl;
+	}
+	cout << "Convertion done！" << endl;
+}
+
+int testCapVedioToImg()//将视频转成图片
+{
+	//打开默认摄像头
+	VideoCapture cap("D:\\Image\\20180420102639472_wp#05.mp4");
+	if (!cap.isOpened())
+	{
+		return -1;
+	}
+
+	Mat frame;
+	// 按Q键退出时，键盘需要调为英文模式
+	while(waitKey(30) != 'q')
+	{
+		// 通过流操作符把视频转化为一帧帧图片
+		cap >> frame;
+		// Do something here 
+		imshow("video", frame);
+		//imwrite(path, frame);
+		//waitKey(0);
+	}
+	return 0;
+}
+int main()
+{
+	double dMultiTestTime = (double)cvGetTickCount();
+	imgToVedio();
+	double dTime = ((double)cvGetTickCount() - dMultiTestTime) / cvGetTickFrequency() / 1000000;
+	printf("Task Done! Time: %fs,TickFreq:%f\n", dTime, cvGetTickFrequency());
+	system("pause");
+	return 0;
+}
+#if 0
 int main(int argc, char** argv)
 {
+
 	//Mat srcImage = imread("Desert.jpg");
 	//namedWindow("Desert", WINDOW_AUTOSIZE);
 	//imshow("Desert", srcImage);
@@ -388,12 +507,19 @@ int main(int argc, char** argv)
 	Mat m2(3, 2, CV_8UC2, Scalar(6, 8, 10));
 	//cout << "M2=" << endl << " " << m2 << endl;
 	//binToImg();
+	
+	u8 src[] = { 98, 98, 98, 98, 98, 98, 98, 98, 
+		         98, 98, 98, 98, 98, 98, 98, 98,
+		         98, 98, 98, 98, 98, 98, 98, 98, 
+				 98, 98, 98, 98, 98, 98, 98, 98 };
+#endif
+#if 0
 	string localpath = "D:\\Image";
 	double dMultiTestTime = (double)cvGetTickCount();
-	procVedio(localpath.c_str());
+	procVedio(localpath.c_str()); 
 	double dTime = ((double)cvGetTickCount() - dMultiTestTime) / cvGetTickFrequency() / 1000000;
 	cout << "SingleThread Done! Time: " << dTime << "s." << endl;
-#if 0
+
 	void *getMalloc = NULL;
 	arr = (int *)malloc(sizeof(int)* N);
 	cmalloc.startAddr = (void *)&arr[0];
@@ -451,7 +577,7 @@ int main(int argc, char** argv)
 	fclose(inputFile);
 	fclose(outputFile);
 	ofstream outfile;
-#endif
+
 
 	//	函数名：glob
 	//参数：String pattern 字符串，由文件夹路径和所要读取的文件名的格式构成的一个正则模板
@@ -466,7 +592,7 @@ int main(int argc, char** argv)
 
 	return 0;
 }
-
+#endif
 /*
 int main()
 {
