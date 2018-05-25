@@ -2,7 +2,7 @@
 #include <opencv2/core/core.hpp>    
 #include <opencv2/imgproc/imgproc.hpp>    
 #include <opencv2/highgui/highgui.hpp>
-
+//#include "json/json.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,129 +28,10 @@ using namespace cv;
 using namespace std;
 //using namespace boost;
 //#pragma comment(lib,"jpeg.lib") 
-#define HLEN     ((sizeof(struct __mp__)))
-mp_t *heap_start;
-int *arr = NULL;
-impl_t cmalloc;
-enum {
-	LOG_ERROR,
-	LOG_WARN,
-	LOG_INFO,
-	LOG_DEBUG
-};
+
 static struct buf_mem_pool g_buf_mem_pool = { NULL, -1, NULL, 0 };
 //struct jpeg_compress_struct cinfo;
 //struct jpeg_error_mgr jerr;
-
-static int _dprintf(unsigned int level, const char* fmt, va_list va)
-{
-	int len = 0;
-	msg_log_t msg;
-
-	uint32_t t = 0;//timer_current_ms();
-
-	if (level > 4)
-		return -1;
-
-	//len = _snprintf((char *)msg.str, sizeof(msg.str), "%u.%03u: ",(t / 1000) & 0xFF, t % 1000);
-	len--; //remove '\0'
-
-	//len += _vsnprintf((char *)msg.str + len, sizeof(msg.str) - len, fmt, va);
-
-
-	msg.head.size = (sizeof(msg.head) + len + 3) >> 2; /* 4 bytes align */
-	msg.head.type = 0x0400; //id_msg_dsp_log_t;
-	msg.head.id.core_id = 0; //current_core();
-	msg.head.mux.log_level = level;
-	//msq_send_msg((msg_t *)&msg);
-
-
-
-	return 0;
-}
-int dprintf(unsigned int level, const char* fmt, ...)
-{
-	int ret;
-	va_list va;
-
-	va_start(va, fmt);
-	ret = _dprintf(level, fmt, va);
-	va_end(va);
-
-	return ret;
-}
-
-void *mem_pool_init(void *heap_start, void *heap_end)
-{
-	/*  Set the __mp__ to point to the beginning of the pool and set
-	*  the pool size.
-	*/
-	unsigned int  size;
-	struct __mp__ *heap_info;
-
-	heap_start = (void *)ALIGNED(heap_start);
-	size = (unsigned int)((char *)heap_end - (char *)heap_start);
-	size = ALIGNMIX(size);
-	printf("malloc Address[%x,%x][%d %d],%d\n", (uint32_t)&arr[0], (uint32_t)&arr[N - 1], \
-		(uint32_t)cmalloc.startAddr, (uint32_t)cmalloc.endAddr, cmalloc.len);
-	heap_info = (struct __mp__ *) heap_start;
-	heap_info->next = NULL;
-	heap_info->len = size;
-	heap_info->rlen = size;
-	//printf("index:%x,%x,%x,%x\n", (uint32_t)heap_info, &heap_info->pc,
-	//&heap_info->rlen, &heap_info->len);
-	printf("$$index:%x,%d,%d\n", (uint32_t)heap_info, heap_info->len, heap_info->rlen);
-	/*  Set the link of the block in the pool to NULL (since it's the only
-	*  block) and initialize the size of its data area.
-	*/
-	heap_info++;
-	//printf("index:%x,%x,%x,%x\n", (uint32_t)heap_info, &heap_info->pc,
-	//	&heap_info->rlen, &heap_info->len);
-	printf("++%x,%d,%d,%d,%d\n", (uint32_t)heap_info, sizeof(struct __mp__), sizeof(struct __mp__ *), sizeof(unsigned int), sizeof(short));
-	heap_info->next = NULL;
-	heap_info->pc = 0;
-	heap_info->len = size - 2 * HLEN;
-	heap_info->rlen = size - 2 * HLEN;
-	printf("init succe index:%x,%d,%d\n", (uint32_t)heap_info, heap_info->len, heap_info->rlen);
-	return heap_info;
-}
-void *rk_malloc(void *heap_addr, unsigned int size, unsigned int pc)
-{
-	struct __mp__ *q;           /* ptr to free block */
-	struct __mp__ *p;           /* q->next */
-	unsigned int  k;            /* space remaining in the allocated block */
-	unsigned int  sizeb = size;
-
-	size = ALIGNED(size);
-	/*  Initialization:  Q is the pointer to the next available block.*/
-	q = (struct __mp__ *) heap_addr;
-
-	while (1) {
-
-		p = q->next;
-		if (!p){
-			printf("!!!!!!!!!!!!!\n");
-			return NULL;
-		}
-		if (p->len >= size)
-			break;
-		q = p;
-	}
-	k = p->len - size;  /* calc. remaining bytes in block */
-
-	k -= (16);
-	p->len = k;
-
-	q = (struct __mp__ *)(((char *)(&p[1])) + k);
-	printf("@@@@q->next:%x,len=%d,p->next=%x\n", (uint32_t)p, p->len, (uint32_t)p->next);
-
-	q->len = size;
-	q->rlen = sizeb;
-	q->pc = pc;
-	q->next = p->next;
-
-	return &q[1];
-}
 
 
 typedef union {
@@ -477,10 +358,85 @@ int testCapVedioToImg()//将视频转成图片
 	}
 	return 0;
 }
+
+//#define NUM_FRAME 3000 //只处理前300帧，根据视频帧数可修改  
+void Image_to_video(const char* in, const char* out)
+{
+	int num = 1;
+	CvSize size = cvSize(1024, 768);  //视频帧格式的大小  
+	double fps = 30; //每秒钟的帧率  
+	CvVideoWriter *writer = cvCreateVideoWriter(out, CV_FOURCC('D', 'I', 'V', 'X'), fps, size); //创建视频文件  
+	char cname[100];
+	sprintf(cname, in, num); //加载图片的文件夹，图片的名称编号是1开始1，2,3,4,5.。。。  
+	IplImage *src = cvLoadImage(cname);
+	if (!src)
+	{
+		return;
+	}
+	IplImage *src_resize = cvCreateImage(size, 8, 3); //创建视频文件格式大小的图片  
+	cvNamedWindow("avi");
+	while (src)
+	{
+		cvShowImage("avi", src_resize);
+		cvWaitKey(1);
+		cvResize(src, src_resize); //将读取的图片设置为视频格式大小相同  
+		cvWriteFrame(writer, src_resize); //保存图片为视频流格式  
+		cvReleaseImage(&src); //释放空间  
+		num++;
+		sprintf(cname, in, num);
+		src = cvLoadImage(cname);       //循环读取数据  
+	}
+	cvReleaseVideoWriter(&writer);
+	cvReleaseImage(&src_resize);
+}
+//void Video_to_image(char* filename, const char* dirname)
+void Video_to_image(char* filename, const char* dirname)
+{
+	printf("------------- video to image ... ----------------\n");
+	//初始化一个视频文件捕捉器  
+	CvCapture* capture = cvCaptureFromAVI(filename);
+	//获取视频信息  
+	//cvQueryFrame(capture);  
+	int frameH = (int)cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_HEIGHT);
+	int frameW = (int)cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_WIDTH);
+	int fps = (int)cvGetCaptureProperty(capture, CV_CAP_PROP_FPS);
+	int numFrames = (int)cvGetCaptureProperty(capture, CV_CAP_PROP_FRAME_COUNT);
+	printf("\tvideo height : %d\n\tvideo width : %d\n\tfps : %d\n\tframe numbers : %d\n", frameH, frameW, fps, numFrames);
+	//定义和初始化变量  
+	int i = 0;
+	IplImage* img = 0;
+	char image_name[130];
+
+	//cvNamedWindow("mainWin", CV_WINDOW_AUTOSIZE);
+	////取和显示  
+	while (1)
+	{
+
+		img = cvQueryFrame(capture); //获取一帧图片  
+		//cvShowImage("mainWin", img); //将其显示  
+		//char key = cvWaitKey(20);
+
+		sprintf(image_name, "%s%s%d%s", dirname, "outImage", i++, ".jpg");//保存的图片名  
+
+		cvSaveImage(image_name, img); //保存一帧图片  
+
+		if (i == numFrames) break;
+	}
+	cvReleaseCapture(&capture);
+	cvDestroyWindow("mainWin");
+}
 int main()
 {
+	//cv::FileStorage fs("E:\\Video2YUV\\pictures\\result.txt", cv::FileStorage::READ);
+
+	//char infilename[130] = "E:/Video2YUV/pictures/20180524164100675.avi";
+	//const char *dirname = "E:/Video2YUV/pictures/pic1280_720/";
+	//const char *outImagename = "C:/Users/jiang/Desktop/output/breakdancer/cam3/3pic (%d).jpg";
+	//const char *outVideoname = "C:/Users/jiang/Desktop/output/3outfile.avi";
+	//Image_to_video(outImagename, outVideoname); //图片转视频
 	double dMultiTestTime = (double)cvGetTickCount();
-	imgToVedio();
+	//imgToVedio();
+	Video_to_image();//AVI转jpg
 	double dTime = ((double)cvGetTickCount() - dMultiTestTime) / cvGetTickFrequency() / 1000000;
 	printf("Task Done! Time: %fs,TickFreq:%f\n", dTime, cvGetTickFrequency());
 	system("pause");
