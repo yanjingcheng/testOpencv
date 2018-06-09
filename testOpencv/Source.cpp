@@ -53,6 +53,25 @@ unsigned char imageFile[(1024 * 768 * 3) >> 1] = { 0 };
 #define V_START	 ((WIDTH*HIGH*5)>>2)
 #define V_END 	 (CAPACITY-1)
 #define __DEBUG 
+
+void dir(string path)
+{
+ long hFile = 0;
+ struct _finddata_t fileInfo;
+ string pathName, exdName;
+ // \\* 代表要遍历所有的类型
+ if ((hFile = _findfirst(pathName.assign(path).append("\\*").c_str(), &fileInfo)) == -1) {
+  return;
+ }
+ do 
+ {
+  //判断文件的属性是文件夹还是文件
+  cout << fileInfo.name << (fileInfo.attrib&_A_SUBDIR? "[folder]":"[file]") << endl;
+ } while (_findnext(hFile, &fileInfo) == 0);
+ _findclose(hFile);
+ return;
+}
+
 //创建多级目录
 int recursive_mkdir(char *dir)
 {
@@ -224,12 +243,61 @@ int get_filenames(const std::string& dir, std::vector<std::string>& filenames)
 	return filenames.size();
 }
 #endif
+void WriteYuv()
+{
+	cv::VideoCapture vc;
+	bool flag = vc.open("D:/testOpencvLib/testOpencv/x64/Debug/20180418174450239_02c.avi");
+	if (!flag)
+	{
+		printf("avi file open error \n");
+		system("pause");
+		exit(-1);
+	}
+
+	int frmCount = vc.get(CV_CAP_PROP_FRAME_COUNT);
+	frmCount -= 5;
+
+	int w = vc.get(CV_CAP_PROP_FRAME_WIDTH);
+	int h = vc.get(CV_CAP_PROP_FRAME_HEIGHT);
+	int bufLen = w*h * 3 / 2;
+	printf("frmCount: %d,buflen:%d,[w*h]=%d*%d\n", frmCount, bufLen,w,h);
+	unsigned char* pYuvBuf = new unsigned char[bufLen];
+	FILE* pFileOut = fopen("D:/testOpencvLib/testOpencv/x64/Debug/result.yuv", "w+");
+	if (!pFileOut)
+	{
+		printf("pFileOut open error \n");
+		system("pause");
+		exit(-1);
+	}
+	printf("pFileOut open ok \n");
+
+	for (int i = 0; i<100; i++)
+	{
+		printf("%d/%d \n", i + 1, frmCount);
+
+		cv::Mat srcImg;
+		vc >> srcImg;
+
+		//cv::imshow("img", srcImg);
+		//cv::waitKey(1);
+
+		cv::Mat yuvImg;
+		cv::cvtColor(srcImg, yuvImg, CV_RGB2YUV_IYUV);
+		memcpy(pYuvBuf, yuvImg.data, bufLen*sizeof(unsigned char));
+
+		fwrite(pYuvBuf, bufLen*sizeof(unsigned char), 1, pFileOut);
+	}
+
+	fclose(pFileOut);
+	delete[] pYuvBuf;
+}
+
 int procVedio(const std::string & sVedioPath)
 {
 	//VideoCapture::
 	vector<String> files;
-	String dir_path = sVedioPath + "\\*.mp4";
-	//String dir_path = "D:\\Image\\*.mp4";   //读取该目录下文件
+	//String dir_path = sVedioPath + "\\*.avi";
+	String dir_path = "D:\\Image\\*.mp4";   //读取该目录下文件
 	glob(dir_path, files, false);
 
 
@@ -243,7 +311,7 @@ int procVedio(const std::string & sVedioPath)
 	long currentFrame = 0;
 	for (int i = 0; i < files.size(); i++)
 	{
-		VideoCapture cap(files[i]);
+		cv::VideoCapture cap(files[i]);
 		if (!cap.isOpened())
 		{
 			perror("error");
@@ -389,8 +457,8 @@ void Image_to_video(const char* in, const char* out)
 	cvReleaseVideoWriter(&writer);
 	cvReleaseImage(&src_resize);
 }
-//void Video_to_image(char* filename, const char* dirname)
 void Video_to_image(char* filename, const char* dirname)
+//void Video_to_image(char* filename, const char* dirname)
 {
 	printf("------------- video to image ... ----------------\n");
 	//初始化一个视频文件捕捉器  
@@ -415,8 +483,8 @@ void Video_to_image(char* filename, const char* dirname)
 		img = cvQueryFrame(capture); //获取一帧图片  
 		//cvShowImage("mainWin", img); //将其显示  
 		//char key = cvWaitKey(20);
-
-		sprintf(image_name, "%s%s%d%s", dirname, "outImage", i++, ".jpg");//保存的图片名  
+		
+		sprintf(image_name, "%s%05d%s", dirname, i++, ".jpg");//保存的图片名  
 
 		cvSaveImage(image_name, img); //保存一帧图片  
 
@@ -425,23 +493,29 @@ void Video_to_image(char* filename, const char* dirname)
 	cvReleaseCapture(&capture);
 	cvDestroyWindow("mainWin");
 }
+#if 1
 int main()
 {
 	//cv::FileStorage fs("E:\\Video2YUV\\pictures\\result.txt", cv::FileStorage::READ);
 
-	//char infilename[130] = "E:/Video2YUV/pictures/20180524164100675.avi";
-	//const char *dirname = "E:/Video2YUV/pictures/pic1280_720/";
+	char infilename[130] = "E:/vedio/0529/2018-05-30_114456_980.avi";
+	const char *dirname = "E:/vedio/0529/2018-05-30_114456_980/";
 	//const char *outImagename = "C:/Users/jiang/Desktop/output/breakdancer/cam3/3pic (%d).jpg";
 	//const char *outVideoname = "C:/Users/jiang/Desktop/output/3outfile.avi";
 	//Image_to_video(outImagename, outVideoname); //图片转视频
 	double dMultiTestTime = (double)cvGetTickCount();
 	//imgToVedio();
-	Video_to_image();//AVI转jpg
+	WriteYuv();
+	//dir(path);
+	//string localpath = ".";
+	//procVedio("D:/testOpencvLib/testOpencv/x64/Debug/");
+	//Video_to_image(infilename, dirname);//AVI转jpg
 	double dTime = ((double)cvGetTickCount() - dMultiTestTime) / cvGetTickFrequency() / 1000000;
 	printf("Task Done! Time: %fs,TickFreq:%f\n", dTime, cvGetTickFrequency());
 	system("pause");
 	return 0;
 }
+#endif
 #if 0
 int main(int argc, char** argv)
 {
@@ -457,25 +531,30 @@ int main(int argc, char** argv)
 	//imwrite("DesertGray.jpg", srcImageGray);          //将转换的灰度图以.bmp格式存储，默认路径为工程目录下
 	//waitKey(0);
 	//printf("hello intellif!\n");
-	int index = 349;
-	Mat m1(2, 2, CV_8UC3, Scalar(1, 2, 3));
+	//int index = 349;
+	//Mat m1(2, 2, CV_8UC3, Scalar(1, 2, 3));
 	//cout << "M1=" << endl << " " << m1 << endl;
-	Mat m2(3, 2, CV_8UC2, Scalar(6, 8, 10));
+	//Mat m2(3, 2, CV_8UC2, Scalar(6, 8, 10));
 	//cout << "M2=" << endl << " " << m2 << endl;
 	//binToImg();
-	
-	u8 src[] = { 98, 98, 98, 98, 98, 98, 98, 98, 
-		         98, 98, 98, 98, 98, 98, 98, 98,
-		         98, 98, 98, 98, 98, 98, 98, 98, 
-				 98, 98, 98, 98, 98, 98, 98, 98 };
-#endif
-#if 0
-	string localpath = "D:\\Image";
+
+	//u8 src[] = { 98, 98, 98, 98, 98, 98, 98, 98, 
+	//         98, 98, 98, 98, 98, 98, 98, 98,
+	//         98, 98, 98, 98, 98, 98, 98, 98, 
+	//		 98, 98, 98, 98, 98, 98, 98, 98 };
+
+	string localpath = ".";
 	double dMultiTestTime = (double)cvGetTickCount();
-	procVedio(localpath.c_str()); 
+	//procVedio(localpath.c_str());
+	WriteYuv();
+	//dir(path);
+	
 	double dTime = ((double)cvGetTickCount() - dMultiTestTime) / cvGetTickFrequency() / 1000000;
 	cout << "SingleThread Done! Time: " << dTime << "s." << endl;
-
+	system("pause");
+}
+#endif
+#if 0
 	void *getMalloc = NULL;
 	arr = (int *)malloc(sizeof(int)* N);
 	cmalloc.startAddr = (void *)&arr[0];
